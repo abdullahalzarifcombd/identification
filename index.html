@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PlantAI - Identify Plants & Diseases</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --primary: #4caf50;
@@ -39,6 +40,7 @@
             padding: 1.5rem;
             text-align: center;
             box-shadow: var(--shadow);
+            position: relative;
         }
 
         .logo {
@@ -280,8 +282,34 @@
             animation: spin 1s linear infinite;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        .chart-container {
+            margin-top: 1.5rem;
+            height: 300px;
+        }
+
+        .disease-treatment {
+            background: #fff8e1;
+            border-left: 4px solid var(--accent);
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+
+        .api-status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
         }
 
         footer {
@@ -318,6 +346,11 @@
             .tab-content {
                 padding: 1.5rem;
             }
+            
+            .btn-group {
+                flex-direction: column;
+                align-items: center;
+            }
         }
 
         @media (max-width: 480px) {
@@ -343,6 +376,7 @@
             <h1>PlantAI</h1>
         </div>
         <p>Identify plants and diseases with AI-powered accuracy</p>
+        <div class="api-status">API: Online</div>
     </header>
 
     <div class="container">
@@ -376,6 +410,9 @@
                     <h3>Upload Plant Image</h3>
                     <p>Drag & drop your image here or click to browse</p>
                     <input type="file" id="file-input" accept="image/*" hidden>
+                    <button class="btn" id="camera-btn">
+                        <i class="fas fa-camera"></i> Use Camera
+                    </button>
                     <p class="performance-badge">Fast Processing - Results in seconds</p>
                 </div>
 
@@ -404,46 +441,48 @@
                 </div>
 
                 <div class="results" id="results">
-                    <div class="result-header">
-                        <h3>Identification Results</h3>
-                        <div class="confidence">
-                            Confidence: <span id="confidence-value">92%</span>
-                        </div>
-                    </div>
-                    <div class="confidence-meter">
-                        <div class="confidence-level" id="confidence-level"></div>
-                    </div>
-                    
-                    <h4>Plant Name: <span id="plant-name">Monstera Deliciosa</span></h4>
-                    
-                    <div class="result-details">
-                        <div class="result-card">
-                            <h4><i class="fas fa-info-circle"></i> Description</h4>
-                            <p id="plant-description">The Monstera Deliciosa, also known as the Swiss Cheese Plant, is a popular tropical plant known for its large, glossy leaves with natural holes. It's native to the rainforests of Central America.</p>
-                        </div>
-                        
-                        <div class="result-card">
-                            <h4><i class="fas fa-sun"></i> Care Instructions</h4>
-                            <ul id="care-instructions">
-                                <li><strong>Light:</strong> Bright, indirect sunlight</li>
-                                <li><strong>Water:</strong> Water when top 2 inches of soil are dry</li>
-                                <li><strong>Humidity:</strong> Prefers high humidity</li>
-                                <li><strong>Temperature:</strong> 65-85°F (18-30°C)</li>
-                            </ul>
-                        </div>
-                    </div>
+                    <!-- Results will be populated here -->
                 </div>
             </div>
 
             <div class="tab-content" id="disease-content">
-                <div class="upload-area">
+                <div class="upload-area" id="disease-upload-area">
                     <i class="fas fa-cloud-upload-alt"></i>
                     <h3>Upload Plant Image for Disease Detection</h3>
                     <p>Drag & drop your image here or click to browse</p>
-                    <button class="btn" id="camera-btn">
+                    <input type="file" id="disease-file-input" accept="image/*" hidden>
+                    <button class="btn" id="disease-camera-btn">
                         <i class="fas fa-camera"></i> Use Camera
                     </button>
                     <p class="performance-badge">AI Diagnosis - Results in seconds</p>
+                </div>
+
+                <div class="camera-container" id="disease-camera-container">
+                    <video id="disease-camera-preview" autoplay playsinline></video>
+                    <div class="camera-controls">
+                        <button class="btn btn-accent" id="disease-capture-btn">
+                            <i class="fas fa-camera"></i> Capture
+                        </button>
+                        <button class="btn btn-outline" id="disease-camera-toggle">
+                            <i class="fas fa-times"></i> Close Camera
+                        </button>
+                    </div>
+                </div>
+
+                <div class="preview-container" id="disease-preview-container">
+                    <img id="disease-image-preview" src="" alt="Preview">
+                    <div class="btn-group">
+                        <button class="btn" id="analyze-disease-btn">
+                            <i class="fas fa-search"></i> Detect Disease
+                        </button>
+                        <button class="btn btn-outline" id="disease-retake-btn">
+                            <i class="fas fa-redo"></i> Try Another
+                        </button>
+                    </div>
+                </div>
+
+                <div class="results" id="disease-results">
+                    <!-- Disease results will be populated here -->
                 </div>
             </div>
         </div>
@@ -455,26 +494,16 @@
     </footer>
 
     <script>
-        // Tab switching functionality
+        // API Endpoint Configuration
+        const API_ENDPOINT = 'https://plantai.yourdomain.workers.dev';
+        const MODES = {
+            PLANT_IDENTIFICATION: 'plant',
+            DISEASE_DETECTION: 'disease'
+        };
+
+        // DOM Elements
         const tabs = document.querySelectorAll('.tab');
         const tabContents = document.querySelectorAll('.tab-content');
-        
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                // Remove active class from all tabs and contents
-                tabs.forEach(t => t.classList.remove('active'));
-                tabContents.forEach(c => c.classList.remove('active'));
-                
-                // Add active class to clicked tab
-                tab.classList.add('active');
-                
-                // Show corresponding content
-                const tabName = tab.getAttribute('data-tab');
-                document.getElementById(`${tabName}-content`).classList.add('active');
-            });
-        });
-
-        // Upload area functionality
         const uploadArea = document.getElementById('upload-area');
         const fileInput = document.getElementById('file-input');
         const previewContainer = document.getElementById('preview-container');
@@ -487,73 +516,138 @@
         const analyzeBtn = document.getElementById('analyze-btn');
         const retakeBtn = document.getElementById('retake-btn');
         const resultsContainer = document.getElementById('results');
-        const confidenceLevel = document.getElementById('confidence-level');
         
+        // Disease detection elements
+        const diseaseUploadArea = document.getElementById('disease-upload-area');
+        const diseaseFileInput = document.getElementById('disease-file-input');
+        const diseasePreviewContainer = document.getElementById('disease-preview-container');
+        const diseaseImagePreview = document.getElementById('disease-image-preview');
+        const diseaseCameraContainer = document.getElementById('disease-camera-container');
+        const diseaseCameraPreview = document.getElementById('disease-camera-preview');
+        const diseaseCameraBtn = document.getElementById('disease-camera-btn');
+        const diseaseCaptureBtn = document.getElementById('disease-capture-btn');
+        const diseaseCameraToggle = document.getElementById('disease-camera-toggle');
+        const analyzeDiseaseBtn = document.getElementById('analyze-disease-btn');
+        const diseaseRetakeBtn = document.getElementById('disease-retake-btn');
+        const diseaseResultsContainer = document.getElementById('disease-results');
+        
+        // State
+        let currentImageData = null;
+        let currentMode = MODES.PLANT_IDENTIFICATION;
+
+        // Tab switching functionality
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active class from all tabs and contents
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
+                
+                // Add active class to clicked tab
+                tab.classList.add('active');
+                
+                // Show corresponding content
+                const tabName = tab.getAttribute('data-tab');
+                document.getElementById(`${tabName}-content`).classList.add('active');
+                
+                // Update current mode
+                currentMode = tabName === 'identify' ? MODES.PLANT_IDENTIFICATION : MODES.DISEASE_DETECTION;
+            });
+        });
+
         // Upload area click
-        uploadArea.addEventListener('click', () => {
-            fileInput.click();
+        uploadArea.addEventListener('click', (e) => {
+            if (e.target !== cameraBtn) {
+                fileInput.click();
+            }
+        });
+        
+        // Disease upload area click
+        diseaseUploadArea.addEventListener('click', (e) => {
+            if (e.target !== diseaseCameraBtn) {
+                diseaseFileInput.click();
+            }
         });
         
         // File input change
         fileInput.addEventListener('change', (e) => {
             if (e.target.files && e.target.files[0]) {
-                const reader = new FileReader();
-                
-                reader.onload = (event) => {
-                    imagePreview.src = event.target.result;
-                    previewContainer.style.display = 'block';
-                    uploadArea.style.display = 'none';
-                }
-                
-                reader.readAsDataURL(e.target.files[0]);
+                handleImageUpload(e.target.files[0]);
+            }
+        });
+        
+        // Disease file input change
+        diseaseFileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                handleDiseaseImageUpload(e.target.files[0]);
             }
         });
         
         // Camera button
         cameraBtn.addEventListener('click', () => {
-            startCamera();
+            startCamera(cameraPreview, cameraContainer);
+        });
+        
+        // Disease camera button
+        diseaseCameraBtn.addEventListener('click', () => {
+            startCamera(diseaseCameraPreview, diseaseCameraContainer);
         });
         
         // Camera toggle button
         cameraToggle.addEventListener('click', () => {
-            stopCamera();
+            stopCamera(cameraPreview, cameraContainer);
+        });
+        
+        // Disease camera toggle button
+        diseaseCameraToggle.addEventListener('click', () => {
+            stopCamera(diseaseCameraPreview, diseaseCameraContainer);
         });
         
         // Capture button
         captureBtn.addEventListener('click', () => {
-            captureImage();
+            captureImage(cameraPreview, previewContainer, imagePreview);
+        });
+        
+        // Disease capture button
+        diseaseCaptureBtn.addEventListener('click', () => {
+            captureImage(diseaseCameraPreview, diseasePreviewContainer, diseaseImagePreview);
         });
         
         // Retake button
         retakeBtn.addEventListener('click', () => {
             previewContainer.style.display = 'none';
             uploadArea.style.display = 'block';
+            resultsContainer.style.display = 'none';
+        });
+        
+        // Disease retake button
+        diseaseRetakeBtn.addEventListener('click', () => {
+            diseasePreviewContainer.style.display = 'none';
+            diseaseUploadArea.style.display = 'block';
+            diseaseResultsContainer.style.display = 'none';
         });
         
         // Analyze button
         analyzeBtn.addEventListener('click', () => {
-            // Show loading
-            resultsContainer.innerHTML = `
-                <div class="loading">
-                    <div class="spinner"></div>
-                </div>
-            `;
-            resultsContainer.style.display = 'block';
-            
-            // Simulate API call to Cloudflare Worker/AI backend
-            setTimeout(() => {
-                showResults();
-            }, 2000);
+            analyzeImage(currentImageData, MODES.PLANT_IDENTIFICATION, resultsContainer);
+        });
+        
+        // Analyze disease button
+        analyzeDiseaseBtn.addEventListener('click', () => {
+            analyzeImage(currentImageData, MODES.DISEASE_DETECTION, diseaseResultsContainer);
         });
         
         // Start camera function
-        function startCamera() {
+        function startCamera(previewElement, containerElement) {
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 navigator.mediaDevices.getUserMedia({ video: true })
                     .then(stream => {
-                        cameraPreview.srcObject = stream;
-                        cameraContainer.style.display = 'block';
-                        uploadArea.style.display = 'none';
+                        previewElement.srcObject = stream;
+                        containerElement.style.display = 'block';
+                        if (containerElement === cameraContainer) {
+                            uploadArea.style.display = 'none';
+                        } else {
+                            diseaseUploadArea.style.display = 'none';
+                        }
                     })
                     .catch(error => {
                         console.error("Camera error: ", error);
@@ -565,30 +659,64 @@
         }
         
         // Stop camera function
-        function stopCamera() {
-            if (cameraPreview.srcObject) {
-                const tracks = cameraPreview.srcObject.getTracks();
+        function stopCamera(previewElement, containerElement) {
+            if (previewElement.srcObject) {
+                const tracks = previewElement.srcObject.getTracks();
                 tracks.forEach(track => track.stop());
-                cameraPreview.srcObject = null;
+                previewElement.srcObject = null;
             }
-            cameraContainer.style.display = 'none';
-            uploadArea.style.display = 'block';
+            containerElement.style.display = 'none';
+            if (containerElement === cameraContainer) {
+                uploadArea.style.display = 'block';
+            } else {
+                diseaseUploadArea.style.display = 'block';
+            }
         }
         
         // Capture image function
-        function captureImage() {
+        function captureImage(previewElement, previewContainerElement, imagePreviewElement) {
             const canvas = document.createElement('canvas');
-            canvas.width = cameraPreview.videoWidth;
-            canvas.height = cameraPreview.videoHeight;
+            canvas.width = previewElement.videoWidth;
+            canvas.height = previewElement.videoHeight;
             const ctx = canvas.getContext('2d');
-            ctx.drawImage(cameraPreview, 0, 0, canvas.width, canvas.height);
+            ctx.drawImage(previewElement, 0, 0, canvas.width, canvas.height);
             
-            imagePreview.src = canvas.toDataURL('image/png');
-            previewContainer.style.display = 'block';
-            cameraContainer.style.display = 'none';
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            imagePreviewElement.src = dataUrl;
+            currentImageData = dataUrl;
+            
+            previewContainerElement.style.display = 'block';
             
             // Stop camera after capture
-            stopCamera();
+            if (previewElement === cameraPreview) {
+                stopCamera(cameraPreview, cameraContainer);
+            } else {
+                stopCamera(diseaseCameraPreview, diseaseCameraContainer);
+            }
+        }
+        
+        // Handle image upload
+        function handleImageUpload(file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                imagePreview.src = event.target.result;
+                currentImageData = event.target.result;
+                previewContainer.style.display = 'block';
+                uploadArea.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // Handle disease image upload
+        function handleDiseaseImageUpload(file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                diseaseImagePreview.src = event.target.result;
+                currentImageData = event.target.result;
+                diseasePreviewContainer.style.display = 'block';
+                diseaseUploadArea.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
         }
         
         // Drag and drop functionality
@@ -607,73 +735,271 @@
             
             if (e.dataTransfer.files && e.dataTransfer.files[0]) {
                 const file = e.dataTransfer.files[0];
-                
                 if (file.type.match('image.*')) {
-                    const reader = new FileReader();
-                    
-                    reader.onload = (event) => {
-                        imagePreview.src = event.target.result;
-                        previewContainer.style.display = 'block';
-                        uploadArea.style.display = 'none';
-                    }
-                    
-                    reader.readAsDataURL(file);
+                    handleImageUpload(file);
                 }
             }
         });
         
-        // Show results function (simulated)
-        function showResults() {
-            // This is where you would display real results from the AI
+        // Disease drag and drop
+        diseaseUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            diseaseUploadArea.classList.add('dragover');
+        });
+        
+        diseaseUploadArea.addEventListener('dragleave', () => {
+            diseaseUploadArea.classList.remove('dragover');
+        });
+        
+        diseaseUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            diseaseUploadArea.classList.remove('dragover');
+            
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                const file = e.dataTransfer.files[0];
+                if (file.type.match('image.*')) {
+                    handleDiseaseImageUpload(file);
+                }
+            }
+        });
+        
+        // Analyze image function
+        function analyzeImage(imageData, mode, resultsContainer) {
+            // Show loading
             resultsContainer.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Analyzing your plant with AI...</p>
+                </div>
+            `;
+            resultsContainer.style.display = 'block';
+            
+            // Scroll to results
+            resultsContainer.scrollIntoView({ behavior: 'smooth' });
+            
+            // Prepare the data for API
+            const base64Data = imageData.split(',')[1];
+            
+            // Send to Cloudflare Worker
+            fetch(`${API_ENDPOINT}/analyze`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    image: base64Data,
+                    mode: mode
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('API response was not OK');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Display results
+                if (mode === MODES.PLANT_IDENTIFICATION) {
+                    displayPlantResults(data, resultsContainer);
+                } else {
+                    displayDiseaseResults(data, resultsContainer);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                resultsContainer.innerHTML = `
+                    <div class="result-card">
+                        <h3>Analysis Failed</h3>
+                        <p>We encountered an error while processing your request. Please try again.</p>
+                        <p>Error: ${error.message}</p>
+                    </div>
+                `;
+            });
+        }
+        
+        // Display plant identification results
+        function displayPlantResults(data, container) {
+            const confidence = Math.round(data.confidence * 100);
+            const plantName = data.plant_name || "Unknown Plant";
+            const description = data.description || "No description available.";
+            const careInstructions = data.care_instructions || [];
+            
+            let careHtml = '';
+            if (careInstructions.length > 0) {
+                careHtml = '<ul>';
+                careInstructions.forEach(instruction => {
+                    careHtml += `<li><strong>${instruction.title}:</strong> ${instruction.description}</li>`;
+                });
+                careHtml += '</ul>';
+            } else {
+                careHtml = '<p>No care instructions available.</p>';
+            }
+            
+            container.innerHTML = `
                 <div class="result-header">
                     <h3>Identification Results</h3>
                     <div class="confidence">
-                        Confidence: <span id="confidence-value">92%</span>
+                        Confidence: <span id="confidence-value">${confidence}%</span>
                     </div>
                 </div>
                 <div class="confidence-meter">
-                    <div class="confidence-level" style="width: 92%"></div>
+                    <div class="confidence-level" style="width: ${confidence}%"></div>
                 </div>
                 
-                <h4>Plant Name: <span id="plant-name">Monstera Deliciosa</span></h4>
+                <h4>Plant Name: <span id="plant-name">${plantName}</span></h4>
                 
                 <div class="result-details">
                     <div class="result-card">
                         <h4><i class="fas fa-info-circle"></i> Description</h4>
-                        <p id="plant-description">The Monstera Deliciosa, also known as the Swiss Cheese Plant, is a popular tropical plant known for its large, glossy leaves with natural holes. It's native to the rainforests of Central America.</p>
+                        <p id="plant-description">${description}</p>
                     </div>
                     
                     <div class="result-card">
                         <h4><i class="fas fa-sun"></i> Care Instructions</h4>
-                        <ul id="care-instructions">
-                            <li><strong>Light:</strong> Bright, indirect sunlight</li>
-                            <li><strong>Water:</strong> Water when top 2 inches of soil are dry</li>
-                            <li><strong>Humidity:</strong> Prefers high humidity</li>
-                            <li><strong>Temperature:</strong> 65-85°F (18-30°C)</li>
-                        </ul>
+                        ${careHtml}
                     </div>
                     
-                    <div class="result-card">
-                        <h4><i class="fas fa-heartbeat"></i> Health Status</h4>
-                        <p><i class="fas fa-check-circle" style="color: #4CAF50"></i> Your plant appears to be healthy</p>
-                        <p><strong>Recommendations:</strong> Continue current care routine. Rotate plant occasionally for even growth.</p>
+                    <div class="chart-container">
+                        <canvas id="plant-chart"></canvas>
                     </div>
                 </div>
             `;
             
-            // Scroll to results
-            resultsContainer.scrollIntoView({ behavior: 'smooth' });
+            // Create the chart
+            const ctx = document.getElementById('plant-chart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Identification Confidence', 'Remaining Uncertainty'],
+                    datasets: [{
+                        data: [confidence, 100 - confidence],
+                        backgroundColor: [
+                            'rgba(76, 175, 80, 0.8)',
+                            'rgba(200, 200, 200, 0.3)'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Identification Confidence'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Display disease detection results
+        function displayDiseaseResults(data, container) {
+            const confidence = Math.round(data.confidence * 100);
+            const diseaseName = data.disease_name || "Unknown Disease";
+            const description = data.description || "No description available.";
+            const treatments = data.treatments || [];
+            const isHealthy = data.is_healthy || false;
+            
+            let treatmentHtml = '';
+            if (treatments.length > 0) {
+                treatmentHtml = '<ul>';
+                treatments.forEach(treatment => {
+                    treatmentHtml += `<li>${treatment}</li>`;
+                });
+                treatmentHtml += '</ul>';
+            } else if (isHealthy) {
+                treatmentHtml = '<p>Your plant appears to be healthy! No treatment needed.</p>';
+            } else {
+                treatmentHtml = '<p>No treatment information available.</p>';
+            }
+            
+            container.innerHTML = `
+                <div class="result-header">
+                    <h3>Disease Detection Results</h3>
+                    <div class="confidence">
+                        Confidence: <span id="confidence-value">${confidence}%</span>
+                    </div>
+                </div>
+                
+                <h4>Diagnosis: <span id="disease-name">${isHealthy ? 'Healthy Plant' : diseaseName}</span></h4>
+                
+                <div class="result-details">
+                    <div class="result-card">
+                        <h4><i class="fas fa-info-circle"></i> Description</h4>
+                        <p id="disease-description">${description}</p>
+                    </div>
+                    
+                    <div class="result-card">
+                        <h4><i class="fas fa-heartbeat"></i> Health Status</h4>
+                        <p><i class="fas ${isHealthy ? 'fa-check-circle' : 'fa-exclamation-circle'}" 
+                               style="color: ${isHealthy ? '#4CAF50' : '#FF9800'}"></i> 
+                           ${isHealthy ? 'Your plant appears to be healthy' : 'Potential health issue detected'}
+                        </p>
+                    </div>
+                    
+                    <div class="disease-treatment">
+                        <h4><i class="fas fa-prescription-bottle"></i> Recommended Treatment</h4>
+                        ${treatmentHtml}
+                    </div>
+                    
+                    <div class="chart-container">
+                        <canvas id="disease-chart"></canvas>
+                    </div>
+                </div>
+            `;
+            
+            // Create the chart
+            const ctx = document.getElementById('disease-chart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Disease Confidence', 'Health Probability'],
+                    datasets: [{
+                        label: 'Analysis Results',
+                        data: [isHealthy ? 0 : confidence, isHealthy ? 100 : 100 - confidence],
+                        backgroundColor: [
+                            'rgba(244, 67, 54, 0.8)',
+                            'rgba(76, 175, 80, 0.8)'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
         }
         
         // Initialize the app
         document.addEventListener('DOMContentLoaded', () => {
-            // Animation for confidence meter
-            setTimeout(() => {
-                if (confidenceLevel) {
-                    confidenceLevel.style.width = '92%';
-                }
-            }, 500);
+            // Check API status
+            fetch(`${API_ENDPOINT}/status`)
+                .then(response => {
+                    if (!response.ok) {
+                        document.querySelector('.api-status').textContent = 'API: Offline';
+                        document.querySelector('.api-status').style.background = '#f44336';
+                    }
+                })
+                .catch(() => {
+                    document.querySelector('.api-status').textContent = 'API: Offline';
+                    document.querySelector('.api-status').style.background = '#f44336';
+                });
         });
     </script>
 </body>
