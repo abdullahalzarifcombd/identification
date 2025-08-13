@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlantAI - Identify Plants & Diseases</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4caf50;
+            --primary-dark: #388e3c;
+            --secondary: #8bc34a;
+            --accent: #ff9800;
+            --light: #f5f5f5;
+            --dark: #333;
+            --gray: #757575;
+            --white: #ffffff;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+            --radius: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            color: var(--dark);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        header {
+            background: linear-gradient(to right, var(--primary), var(--primary-dark));
+            color: var(--white);
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .logo i {
+            color: var(--secondary);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .feature-card {
+            background: var(--white);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s ease;
+            text-align: center;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-card i {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            margin-bottom: 0.5rem;
+            color: var(--primary-dark);
+        }
+
+        .main-content {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        .tab-container {
+            display: flex;
+            border-bottom: 2px solid var(--light);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 600;
+            background: var(--light);
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            background: var(--white);
+            color: var(--primary-dark);
+            border-bottom: 3px solid var(--primary);
+        }
+
+        .tab-content {
+            padding: 2rem;
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--gray);
+            border-radius: var(--radius);
+            padding: 3rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: var(--primary);
+            background: rgba(76, 175, 80, 0.05);
+        }
+
+        .upload-area i {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .camera-container {
+            position: relative;
+            margin: 1.5rem 0;
+            display: none;
+        }
+
+        #camera-preview {
+            width: 100%;
+            border-radius: var(--radius);
+            background: var(--dark);
+        }
+
+        .camera-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: var(--white);
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary);
+            color: var(--white);
+        }
+
+        .btn-accent {
+            background: var(--accent);
+        }
+
+        .btn-accent:hover {
+            background: #f57c00;
+        }
+
+        .preview-container {
+            text-align: center;
+            margin: 1.5rem 0;
+            display: none;
+        }
+
+        #image-preview {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .results {
+            background: var(--light);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-top: 2rem;
+            display: none;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .confidence-meter {
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .confidence-level {
+            height: 100%;
+            background: var(--primary);
+            width: 0;
+            transition: width 1s ease;
+        }
+
+        .result-details {
+            margin-top: 1.5rem;
+        }
+
+        .result-card {
+            background: var(--white);
+            border-radius: var(--radius);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0,0,0,0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        footer {
+            background: var(--dark);
+            color: var(--white);
+            text-align: center;
+            padding: 2rem;
+            margin-top: auto;
+        }
+
+        .performance-badge {
+            display: inline-block;
+            background: var(--primary);
+            color: var(--white);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .features {
+                grid-template-columns: 1fr;
+            }
+            
+            .tab-container {
+                flex-direction: column;
+            }
+            
+            .container {
+                padding: 0 1rem;
+            }
+            
+            .tab-content {
+                padding: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logo {
+                font-size: 1.5rem;
+            }
+            
+            .feature-card i {
+                font-size: 2.5rem;
+            }
+            
+            .btn {
+                padding: 0.7rem 1.2rem;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <i class="fas fa-leaf"></i>
+            <h1>PlantAI</h1>
+        </div>
+        <p>Identify plants and diseases with AI-powered accuracy</p>
+    </header>
+
+    <div class="container">
+        <div class="features">
+            <div class="feature-card">
+                <i class="fas fa-seedling"></i>
+                <h3>Plant Identification</h3>
+                <p>Instantly recognize thousands of plant species with our advanced AI technology</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-bug"></i>
+                <h3>Disease Detection</h3>
+                <p>Identify plant diseases and get treatment recommendations to save your plants</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-robot"></i>
+                <h3>AI-Powered Analysis</h3>
+                <p>Powered by Google Gemini for the most accurate plant identification</p>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="tab-container">
+                <div class="tab active" data-tab="identify">Plant Identification</div>
+                <div class="tab" data-tab="disease">Disease Detection</div>
+            </div>
+
+            <div class="tab-content active" id="identify-content">
+                <div class="upload-area" id="upload-area">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <h3>Upload Plant Image</h3>
+                    <p>Drag & drop your image here or click to browse</p>
+                    <input type="file" id="file-input" accept="image/*" hidden>
+                    <p class="performance-badge">Fast Processing - Results in seconds</p>
+                </div>
+
+                <div class="camera-container" id="camera-container">
+                    <video id="camera-preview" autoplay playsinline></video>
+                    <div class="camera-controls">
+                        <button class="btn btn-accent" id="capture-btn">
+                            <i class="fas fa-camera"></i> Capture
+                        </button>
+                        <button class="btn btn-outline" id="camera-toggle">
+                            <i class="fas fa-times"></i> Close Camera
+                        </button>
+                    </div>
+                </div>
+
+                <div class="preview-container" id="preview-container">
+                    <img id="image-preview" src="" alt="Preview">
+                    <div class="btn-group">
+                        <button class="btn" id="analyze-btn">
+                            <i class="fas fa-search"></i> Identify Plant
+                        </button>
+                        <button class="btn btn-outline" id="retake-btn">
+                            <i class="fas fa-redo"></i> Try Another
+                        </button>
+                    </div>
+                </div>
+
+                <div class="results" id="results">
+                    <div class="result-header">
+                        <h3>Identification Results</h3>
+                        <div class="confidence">
+                            Confidence: <span id="confidence-value">92%</span>
+                        </div>
+                    </div>
+                    <div class="confidence-meter">
+                        <div class="confidence-level" id="confidence-level"></div>
+                    </div>
+                    
+                    <h4>Plant Name: <span id="plant-name">Monstera Deliciosa</span></h4>
+                    
+                    <div class="result-details">
+                        <div class="result-card">
+                            <h4><i class="fas fa-info-circle"></i> Description</h4>
+                            <p id="plant-description">The Monstera Deliciosa, also known as the Swiss Cheese Plant, is a popular tropical plant known for its large, glossy leaves with natural holes. It's native to the rainforests of Central America.</p>
+                        </div>
+                        
+                        <div class="result-card">
+                            <h4><i class="fas fa-sun"></i> Care Instructions</h4>
+                            <ul id="care-instructions">
+                                <li><strong>Light:</strong> Bright, indirect sunlight</li>
+                                <li><strong>Water:</strong> Water when top 2 inches of soil are dry</li>
+                                <li><strong>Humidity:</strong> Prefers high humidity</li>
+                                <li><strong>Temperature:</strong> 65-85°F (18-30°C)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="disease-content">
+                <div class="upload-area">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <h3>Upload Plant Image for Disease Detection</h3>
+                    <p>Drag & drop your image here or click to browse</p>
+                    <button class="btn" id="camera-btn">
+                        <i class="fas fa-camera"></i> Use Camera
+                    </button>
+                    <p class="performance-badge">AI Diagnosis - Results in seconds</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>PlantAI - Powered by Cloudflare Pages & Google Gemini</p>
+        <p>Easy to deploy, fast, and reliable plant identification solution</p>
+    </footer>
+
+    <script>
+        // Tab switching functionality
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active class from all tabs and contents
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
+                
+                // Add active class to clicked tab
+                tab.classList.add('active');
+                
+                // Show corresponding content
+                const tabName = tab.getAttribute('data-tab');
+                document.getElementById(`${tabName}-content`).classList.add('active');
+            });
+        });
+
+        // Upload area functionality
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('file-input');
+        const previewContainer = document.getElementById('preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        const cameraContainer = document.getElementById('camera-container');
+        const cameraPreview = document.getElementById('camera-preview');
+        const cameraBtn = document.getElementById('camera-btn');
+        const captureBtn = document.getElementById('capture-btn');
+        const cameraToggle = document.getElementById('camera-toggle');
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const retakeBtn = document.getElementById('retake-btn');
+        const resultsContainer = document.getElementById('results');
+        const confidenceLevel = document.getElementById('confidence-level');
+        
+        // Upload area click
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                const reader = new FileReader();
+                
+                reader.onload = (event) => {
+                    imagePreview.src = event.target.result;
+                    previewContainer.style.display = 'block';
+                    uploadArea.style.display = 'none';
+                }
+                
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+        
+        // Camera button
+        cameraBtn.addEventListener('click', () => {
+            startCamera();
+        });
+        
+        // Camera toggle button
+        cameraToggle.addEventListener('click', () => {
+            stopCamera();
+        });
+        
+        // Capture button
+        captureBtn.addEventListener('click', () => {
+            captureImage();
+        });
+        
+        // Retake button
+        retakeBtn.addEventListener('click', () => {
+            previewContainer.style.display = 'none';
+            uploadArea.style.display = 'block';
+        });
+        
+        // Analyze button
+        analyzeBtn.addEventListener('click', () => {
+            // Show loading
+            resultsContainer.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+            `;
+            resultsContainer.style.display = 'block';
+            
+            // Simulate API call to Cloudflare Worker/AI backend
+            setTimeout(() => {
+                showResults();
+            }, 2000);
+        });
+        
+        // Start camera function
+        function startCamera() {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(stream => {
+                        cameraPreview.srcObject = stream;
+                        cameraContainer.style.display = 'block';
+                        uploadArea.style.display = 'none';
+                    })
+                    .catch(error => {
+                        console.error("Camera error: ", error);
+                        alert("Could not access the camera. Please check permissions.");
+                    });
+            } else {
+                alert("Your browser doesn't support camera access.");
+            }
+        }
+        
+        // Stop camera function
+        function stopCamera() {
+            if (cameraPreview.srcObject) {
+                const tracks = cameraPreview.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+                cameraPreview.srcObject = null;
+            }
+            cameraContainer.style.display = 'none';
+            uploadArea.style.display = 'block';
+        }
+        
+        // Capture image function
+        function captureImage() {
+            const canvas = document.createElement('canvas');
+            canvas.width = cameraPreview.videoWidth;
+            canvas.height = cameraPreview.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(cameraPreview, 0, 0, canvas.width, canvas.height);
+            
+            imagePreview.src = canvas.toDataURL('image/png');
+            previewContainer.style.display = 'block';
+            cameraContainer.style.display = 'none';
+            
+            // Stop camera after capture
+            stopCamera();
+        }
+        
+        // Drag and drop functionality
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                const file = e.dataTransfer.files[0];
+                
+                if (file.type.match('image.*')) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = (event) => {
+                        imagePreview.src = event.target.result;
+                        previewContainer.style.display = 'block';
+                        uploadArea.style.display = 'none';
+                    }
+                    
+                    reader.readAsDataURL(file);
+                }
+            }
+        });
+        
+        // Show results function (simulated)
+        function showResults() {
+            // This is where you would display real results from the AI
+            resultsContainer.innerHTML = `
+                <div class="result-header">
+                    <h3>Identification Results</h3>
+                    <div class="confidence">
+                        Confidence: <span id="confidence-value">92%</span>
+                    </div>
+                </div>
+                <div class="confidence-meter">
+                    <div class="confidence-level" style="width: 92%"></div>
+                </div>
+                
+                <h4>Plant Name: <span id="plant-name">Monstera Deliciosa</span></h4>
+                
+                <div class="result-details">
+                    <div class="result-card">
+                        <h4><i class="fas fa-info-circle"></i> Description</h4>
+                        <p id="plant-description">The Monstera Deliciosa, also known as the Swiss Cheese Plant, is a popular tropical plant known for its large, glossy leaves with natural holes. It's native to the rainforests of Central America.</p>
+                    </div>
+                    
+                    <div class="result-card">
+                        <h4><i class="fas fa-sun"></i> Care Instructions</h4>
+                        <ul id="care-instructions">
+                            <li><strong>Light:</strong> Bright, indirect sunlight</li>
+                            <li><strong>Water:</strong> Water when top 2 inches of soil are dry</li>
+                            <li><strong>Humidity:</strong> Prefers high humidity</li>
+                            <li><strong>Temperature:</strong> 65-85°F (18-30°C)</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="result-card">
+                        <h4><i class="fas fa-heartbeat"></i> Health Status</h4>
+                        <p><i class="fas fa-check-circle" style="color: #4CAF50"></i> Your plant appears to be healthy</p>
+                        <p><strong>Recommendations:</strong> Continue current care routine. Rotate plant occasionally for even growth.</p>
+                    </div>
+                </div>
+            `;
+            
+            // Scroll to results
+            resultsContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', () => {
+            // Animation for confidence meter
+            setTimeout(() => {
+                if (confidenceLevel) {
+                    confidenceLevel.style.width = '92%';
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>
