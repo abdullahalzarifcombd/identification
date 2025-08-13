@@ -3,8 +3,9 @@ compatibility_date = "2024-06-01"
 pages_build_output_dir = "public"
 
 [build]
-command = "npm run dev"
+command = "npm install"
 
 [[dependencies]]
 package = "@google/generative-ai"
+
 
