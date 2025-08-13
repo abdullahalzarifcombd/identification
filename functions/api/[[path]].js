@@ -14,7 +14,7 @@ export async function onRequestPost({ request, env }) {
         status: 400,
         headers: { 
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': 'https://plantai-worker.abdullahalzarif.workers.dev/'
+          'Access-Control-Allow-Origin': 'https://identification-e7x.pages.dev/'
         }
       });
     }
@@ -68,7 +68,7 @@ export async function onRequestPost({ request, env }) {
     return new Response(JSON.stringify(analysisResult), {
       headers: { 
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': 'https://plantai-worker.abdullahalzarif.workers.dev/'
+        'Access-Control-Allow-Origin': 'https://identification-e7x.pages.dev/'
       }
     });
     
@@ -83,7 +83,7 @@ export async function onRequestPost({ request, env }) {
       status: 500,
       headers: { 
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': 'https://plantai-worker.abdullahalzarif.workers.dev/'
+        'Access-Control-Allow-Origin': 'https://identification-e7x.pages.dev/'
       }
     });
   }
@@ -99,4 +99,5 @@ export async function onRequestOptions() {
     }
   });
 }
+
 
