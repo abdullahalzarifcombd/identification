@@ -4,5 +4,8 @@
   "private": true,
   "dependencies": {
     "@google/generative-ai": "^0.8.0"
+  },
+  "scripts": {
+    "preinstall": "echo 'Installing dependencies for Cloudflare Functions'"
   }
 }
