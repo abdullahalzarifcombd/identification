@@ -6,40 +6,6 @@
     <title>PlantAI - Identify Plants & Diseases</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        const API_ENDPOINT = 'https://plantai-worker.abdullahalzarif.workers.dev/';
-        
-        // Enhanced API status check
-        async function checkApiStatus() {
-            const statusEl = document.querySelector('.api-status');
-            try {
-                const response = await fetch(`${API_ENDPOINT}/status`);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                
-                const data = await response.json();
-                statusEl.textContent = `API: ${data.status}`;
-                statusEl.className = 'api-status online';
-                return true;
-            } catch (error) {
-                console.error('API status check failed:', error);
-                statusEl.textContent = 'API: Offline';
-                statusEl.className = 'api-status offline';
-                
-                // Show notification
-                showNotification(
-                    'API is offline. Some features may not work.',
-                    'error'
-                );
-                return false;
-            }
-        }
-        
-        function showNotification(message, type = 'info') {
-            // Notification implementation
-        }
-        
-        document.addEventListener('DOMContentLoaded', checkApiStatus);
-    </script>
     <style>
         :root {
             --primary: #4caf50;
@@ -529,7 +495,7 @@
 
     <script>
         // API Endpoint Configuration
-        const API_ENDPOINT = 'https://plantai-worker.abdullahalzarif.workers.dev';
+        const API_ENDPOINT = '/api';
         const MODES = {
             PLANT_IDENTIFICATION: 'plant',
             DISEASE_DETECTION: 'disease'
@@ -1039,4 +1005,5 @@
 </body>
 
 </html>
+
 
